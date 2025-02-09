@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -30,6 +31,8 @@ export function Header() {
         </div>
 
         <div className="flex items-center space-x-4">
+          <ThemeToggle />
+          
           {status === "loading" ? (
             <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
           ) : session ? (
