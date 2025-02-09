@@ -17,7 +17,7 @@ Um aplicativo web moderno para praticar inglês usando Inteligência Artificial,
 
 - **Frontend**: Next.js 14, React, TypeScript
 - **Estilização**: Tailwind CSS, Shadcn UI
-- **Backend**: Next.js API Routes
+- **Backend**: Next.js API Routes, PostgreSQL
 - **Autenticação**: NextAuth.js
 - **IA**: OpenRouter API, Whisper API
 - **Outros**: Web Speech API, WebRTC
@@ -25,6 +25,7 @@ Um aplicativo web moderno para praticar inglês usando Inteligência Artificial,
 ## 📋 Pré-requisitos
 
 - Node.js 18+
+- PostgreSQL
 - Conta no OpenRouter (para acesso aos modelos de IA)
 - (Opcional) Chave API do Whisper para reconhecimento de voz avançado
 
@@ -46,7 +47,16 @@ npm install
 cp .env.example .env
 ```
 
-4. Inicie o servidor de desenvolvimento:
+4. Configure o banco de dados:
+```bash
+# Crie o banco de dados PostgreSQL
+createdb english_ai_trainer
+
+# Execute as migrações do banco
+psql -d english_ai_trainer -f sql/schema.sql
+```
+
+5. Inicie o servidor de desenvolvimento:
 ```bash
 npm run dev
 ```
@@ -58,6 +68,9 @@ npm run dev
 Copie o arquivo `.env.example` para `.env` e configure as seguintes variáveis:
 
 ```env
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/english_ai_trainer?schema=public"
+
 # Authentication
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="" # Gere com: openssl rand -base64 32
