@@ -61,7 +61,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
-          {session.user.image && (
+          {session?.user?.image && (
             <img
               src={session.user.image}
               alt={session.user.name || "Profile"}
@@ -69,8 +69,8 @@ export default function ProfilePage() {
             />
           )}
           <div>
-            <h1 className="text-3xl font-bold">{session.user.name}</h1>
-            <p className="text-muted-foreground">{session.user.email}</p>
+            <h1 className="text-3xl font-bold">{session?.user?.name || "User"}</h1>
+            <p className="text-muted-foreground">{session?.user?.email}</p>
           </div>
         </div>
 
