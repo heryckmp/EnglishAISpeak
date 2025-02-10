@@ -23,26 +23,25 @@ export class LocalLLMClient {
 
   constructor(model: "llama2" | "mistral" | "phi2") {
     this.model = model;
-    
-    // Verificar se o modelo está habilitado
-    const modelConfig = config.llm.localModels[model];
-    if (!modelConfig.enabled) {
-      throw new Error(`Model ${model} is not enabled in configuration`);
+    switch (model) {
+      case "llama2":
+        this.apiUrl = process.env.LLAMA2_API_URL || "http://localhost:8000";
+        break;
+      case "mistral":
+        this.apiUrl = process.env.MISTRAL_API_URL || "http://localhost:8001";
+        break;
+      case "phi2":
+        this.apiUrl = process.env.PHI2_API_URL || "http://localhost:8002";
+        break;
     }
-    
-    this.apiUrl = modelConfig.apiUrl;
   }
 
-  // Lista de modelos disponíveis
   static getAvailableModels() {
-    const models: Record<string, boolean> = {};
-    
-    // Verificar cada modelo local
-    Object.entries(config.llm.localModels).forEach(([model, config]) => {
-      models[model] = config.enabled;
-    });
-    
-    return models;
+    return {
+      llama2: process.env.ENABLE_LLAMA2 === "true",
+      mistral: process.env.ENABLE_MISTRAL === "true",
+      phi2: process.env.ENABLE_PHI2 === "true",
+    };
   }
 
   async chat(
@@ -57,16 +56,15 @@ export class LocalLLMClient {
         },
         body: JSON.stringify({
           messages,
-          temperature: options.temperature || 0.7,
-          max_tokens: options.max_tokens || 1000,
-          top_p: options.top_p || 0.95,
+          temperature: options.temperature,
+          max_tokens: options.max_tokens,
+          top_p: options.top_p,
           stop: options.stop,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Local LLM API error: ${error.message || response.statusText}`);
+        throw new Error(`Local LLM API error: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -75,12 +73,11 @@ export class LocalLLMClient {
         model: this.model,
       };
     } catch (error) {
-      console.error(`Error calling local ${this.model} API:`, error);
+      console.error("Local LLM chat error:", error);
       throw error;
     }
   }
 
-  // Método para streaming de respostas
   async *streamChat(
     messages: LocalLLMMessage[],
     options: LocalLLMOptions = {}
@@ -93,17 +90,16 @@ export class LocalLLMClient {
         },
         body: JSON.stringify({
           messages,
-          temperature: options.temperature || 0.7,
-          max_tokens: options.max_tokens || 1000,
-          top_p: options.top_p || 0.95,
+          temperature: options.temperature,
+          max_tokens: options.max_tokens,
+          top_p: options.top_p,
           stop: options.stop,
           stream: true,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Local LLM API error: ${error.message || response.statusText}`);
+        throw new Error(`Local LLM API error: ${response.statusText}`);
       }
 
       const reader = response.body?.getReader();
@@ -118,26 +114,19 @@ export class LocalLLMClient {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+        const lines = chunk
+          .split("\n")
+          .filter((line) => line.trim().startsWith("data: "));
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") return;
-
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.choices?.[0]?.delta?.content) {
-                yield parsed.choices[0].delta.content;
-              }
-            } catch (e) {
-              console.error("Failed to parse streaming response:", e);
-            }
+          const data = JSON.parse(line.slice(6));
+          if (data.choices?.[0]?.delta?.content) {
+            yield data.choices[0].delta.content;
           }
         }
       }
     } catch (error) {
-      console.error(`Error streaming from local ${this.model} API:`, error);
+      console.error("Local LLM stream chat error:", error);
       throw error;
     }
   }

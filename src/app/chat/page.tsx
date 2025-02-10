@@ -230,6 +230,7 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error("Error sending message:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -406,7 +407,6 @@ export default function ChatPage() {
                   <VoiceRecorder
                     onRecordingComplete={handleVoiceRecording}
                     isProcessing={isProcessingAudio}
-                    whisperApiKey={config.openai.apiKey}
                   />
                 )}
                 <ChatInput onSend={handleSendMessage} isLoading={isLoading} />

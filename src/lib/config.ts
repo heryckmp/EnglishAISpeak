@@ -52,29 +52,29 @@ interface Config {
 
 const config: Config = {
   database: {
-    user: process.env.POSTGRES_USER || 'postgres',
-    password: process.env.POSTGRES_PASSWORD || 'postgres',
-    host: process.env.POSTGRES_HOST || 'localhost',
-    port: parseInt(process.env.POSTGRES_PORT || '5432'),
-    database: process.env.POSTGRES_DB || 'english_ai_trainer',
+    user: process.env.POSTGRES_USER || "postgres",
+    password: process.env.POSTGRES_PASSWORD || "postgres",
+    host: process.env.POSTGRES_HOST || "localhost",
+    port: parseInt(process.env.POSTGRES_PORT || "5432"),
+    database: process.env.POSTGRES_DB || "english_ai_trainer",
   },
   auth: {
-    nextAuthUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    nextAuthSecret: process.env.NEXTAUTH_SECRET!,
-    googleClientId: process.env.GOOGLE_CLIENT_ID!,
-    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    githubId: process.env.GITHUB_ID!,
-    githubSecret: process.env.GITHUB_SECRET!,
+    nextAuthUrl: process.env.NEXTAUTH_URL || "http://localhost:3000",
+    nextAuthSecret: process.env.NEXTAUTH_SECRET || "",
+    googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    githubId: process.env.GITHUB_ID || "",
+    githubSecret: process.env.GITHUB_SECRET || "",
   },
   openai: {
-    apiKey: process.env.OPENAI_API_KEY!,
+    apiKey: process.env.OPENAI_API_KEY || "",
   },
   openrouter: {
-    apiKey: process.env.OPENROUTER_API_KEY!,
+    apiKey: process.env.OPENROUTER_API_KEY || "",
     defaultModel: "anthropic/claude-3-opus",
   },
   llm: {
-    provider: process.env.LLM_PROVIDER as Config["llm"]["provider"] || "openrouter",
+    provider: (process.env.LLM_PROVIDER as Config["llm"]["provider"]) || "openrouter",
     localModels: {
       llama2: {
         enabled: process.env.ENABLE_LLAMA2 === "true",
@@ -91,12 +91,12 @@ const config: Config = {
     },
   },
   tts: {
-    provider: process.env.TTS_PROVIDER as Config["tts"]["provider"] || "browser",
+    provider: (process.env.TTS_PROVIDER as Config["tts"]["provider"]) || "browser",
     coquiUrl: process.env.COQUI_TTS_URL,
     mozillaUrl: process.env.MOZILLA_TTS_URL,
   },
   stt: {
-    provider: process.env.STT_PROVIDER as Config["stt"]["provider"] || "browser",
+    provider: (process.env.STT_PROVIDER as Config["stt"]["provider"]) || "browser",
     voskUrl: process.env.VOSK_URL,
     whisperUrl: process.env.WHISPER_URL,
   },
