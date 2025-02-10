@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { ConversationList } from "@/components/chat/conversation-list";
 import { useProgress } from "@/hooks/use-progress";
 import { usePracticeTime } from "@/hooks/use-practice-time";
+import { useApiKey } from "@/hooks/use-api-key";
+import { ApiKeyModal } from "@/components/chat/api-key-modal";
 
 // Tipos
 interface Message {
@@ -65,6 +67,7 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { incrementProgress } = useProgress();
+  const { isKeySet } = useApiKey();
 
   // Rastrear tempo de prática
   usePracticeTime();
@@ -296,6 +299,10 @@ export default function ChatPage() {
       setIsProcessingAudio(false);
     }
   };
+
+  if (!isKeySet) {
+    return <ApiKeyModal />;
+  }
 
   return (
     <div className="container mx-auto p-4">

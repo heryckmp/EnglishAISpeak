@@ -23,15 +23,19 @@ interface OpenRouterOptions {
 }
 
 export class OpenRouterClient {
-  private apiKey: string;
+  private apiKey: string | (() => string);
   private baseUrl: string = "https://openrouter.ai/api/v1";
   private defaultModel: string = "anthropic/claude-3-opus";
 
-  constructor(apiKey: string, defaultModel?: string) {
+  constructor(apiKey: string | (() => string), defaultModel?: string) {
     this.apiKey = apiKey;
     if (defaultModel) {
       this.defaultModel = defaultModel;
     }
+  }
+
+  private getApiKey(): string {
+    return typeof this.apiKey === "function" ? this.apiKey() : this.apiKey;
   }
 
   async chat(
@@ -43,7 +47,7 @@ export class OpenRouterClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.getApiKey()}`,
         },
         body: JSON.stringify({
           messages,
@@ -51,7 +55,7 @@ export class OpenRouterClient {
           temperature: options.temperature,
           max_tokens: options.max_tokens,
           top_p: options.top_p,
-          stream: options.stream,
+          stream: false,
         }),
       });
 
@@ -59,7 +63,7 @@ export class OpenRouterClient {
         throw new Error(`OpenRouter API error: ${response.statusText}`);
       }
 
-      return response.json();
+      return await response.json();
     } catch (error) {
       console.error("OpenRouter chat error:", error);
       throw error;
@@ -95,7 +99,7 @@ export class OpenRouterClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.getApiKey()}`,
         },
         body: JSON.stringify({
           messages,

@@ -18,7 +18,7 @@ interface Config {
     apiKey: string;
   };
   openrouter: {
-    apiKey: string;
+    apiKey: string | (() => string);
     defaultModel: string;
   };
   llm: {
@@ -50,6 +50,13 @@ interface Config {
   };
 }
 
+const getApiKey = () => {
+  if (typeof window !== "undefined") {
+    return window.localStorage.getItem("openrouter_api_key") || "";
+  }
+  return "";
+};
+
 const config: Config = {
   database: {
     user: process.env.POSTGRES_USER || "postgres",
@@ -70,11 +77,11 @@ const config: Config = {
     apiKey: process.env.OPENAI_API_KEY || "",
   },
   openrouter: {
-    apiKey: process.env.OPENROUTER_API_KEY || "",
+    apiKey: getApiKey,
     defaultModel: "anthropic/claude-3-opus",
   },
   llm: {
-    provider: (process.env.LLM_PROVIDER as Config["llm"]["provider"]) || "openrouter",
+    provider: "openrouter" as const,
     localModels: {
       llama2: {
         enabled: process.env.ENABLE_LLAMA2 === "true",
@@ -91,12 +98,12 @@ const config: Config = {
     },
   },
   tts: {
-    provider: (process.env.TTS_PROVIDER as Config["tts"]["provider"]) || "browser",
+    provider: "browser" as const,
     coquiUrl: process.env.COQUI_TTS_URL,
     mozillaUrl: process.env.MOZILLA_TTS_URL,
   },
   stt: {
-    provider: (process.env.STT_PROVIDER as Config["stt"]["provider"]) || "browser",
+    provider: "browser" as const,
     voskUrl: process.env.VOSK_URL,
     whisperUrl: process.env.WHISPER_URL,
   },
