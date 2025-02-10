@@ -7,8 +7,8 @@ import { Header } from "@/components/shared/header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "English AI Trainer",
-  description: "Modern web app for training English using Artificial Intelligence",
+  title: "Treinador de Inglês com IA",
+  description: "Aplicativo web moderno para treinar inglês usando Inteligência Artificial",
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>
           <Header />

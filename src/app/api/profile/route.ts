@@ -10,39 +10,39 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch user stats
-    const statsResult = await query(
-      `SELECT 
-        (SELECT COUNT(*) FROM conversations WHERE user_id = $1) as total_conversations,
-        (SELECT COUNT(*) FROM writing_exercises WHERE user_id = $1) as total_writing_exercises,
-        (SELECT COUNT(*) FROM progress_tracking WHERE user_id = $1 AND category = 'words_learned') as words_learned,
+    const stats = await query({
+      query: `SELECT 
+        (SELECT COUNT(*) FROM conversations WHERE user_id = ?) as total_conversations,
+        (SELECT COUNT(*) FROM writing_exercises WHERE user_id = ?) as total_writing_exercises,
+        (SELECT COUNT(*) FROM progress_tracking WHERE user_id = ? AND category = 'words_learned') as words_learned,
         COALESCE(
           (SELECT value FROM progress_tracking 
-           WHERE user_id = $1 AND category = 'accuracy_rate' 
+           WHERE user_id = ? AND category = 'accuracy_rate' 
            ORDER BY recorded_at DESC LIMIT 1),
           0
         ) as accuracy_rate,
         COALESCE(
           (SELECT value FROM progress_tracking 
-           WHERE user_id = $1 AND category = 'practice_time' 
+           WHERE user_id = ? AND category = 'practice_time' 
            ORDER BY recorded_at DESC LIMIT 1),
           0
         ) as practice_time,
         COALESCE(
-          (SELECT level FROM users WHERE id = $1),
+          (SELECT level FROM users WHERE id = ?),
           'intermediate'
         ) as level`,
-      [session.user.id]
-    );
+      values: Array(6).fill(session.user.id)
+    });
 
     // Fetch recent activities
-    const activitiesResult = await query(
-      `SELECT 
+    const activities = await query({
+      query: `SELECT 
         'chat' as type,
         id,
         title,
         created_at as date
        FROM conversations 
-       WHERE user_id = $1
+       WHERE user_id = ?
        UNION ALL
        SELECT 
         'writing' as type,
@@ -50,28 +50,27 @@ export async function GET(req: NextRequest) {
         title,
         created_at as date
        FROM writing_exercises 
-       WHERE user_id = $1
+       WHERE user_id = ?
        ORDER BY date DESC
        LIMIT 10`,
-      [session.user.id]
-    );
+      values: [session.user.id, session.user.id]
+    });
 
-    const stats = statsResult.rows[0];
-    const activities = activitiesResult.rows.map(activity => ({
+    const formattedActivities = activities.map(activity => ({
       ...activity,
       date: new Date(activity.date).toLocaleDateString(),
     }));
 
     return Response.json({
       stats: {
-        totalConversations: parseInt(stats.total_conversations),
-        totalWritingExercises: parseInt(stats.total_writing_exercises),
-        wordsLearned: parseInt(stats.words_learned),
-        accuracyRate: parseInt(stats.accuracy_rate),
-        practiceTime: parseInt(stats.practice_time),
-        level: stats.level,
+        totalConversations: parseInt(stats[0].total_conversations),
+        totalWritingExercises: parseInt(stats[0].total_writing_exercises),
+        wordsLearned: parseInt(stats[0].words_learned),
+        accuracyRate: parseInt(stats[0].accuracy_rate),
+        practiceTime: parseInt(stats[0].practice_time),
+        level: stats[0].level,
       },
-      activities,
+      activities: formattedActivities,
     });
   } catch (error) {
     console.error("Profile API Error:", error);

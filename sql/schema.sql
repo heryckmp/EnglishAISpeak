@@ -95,14 +95,17 @@ CREATE TABLE writing_exercises (
 );
 
 -- Progress tracking table
-CREATE TABLE progress_tracking (
+CREATE TABLE IF NOT EXISTS progress_tracking (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category VARCHAR(50) NOT NULL,
-  value INTEGER NOT NULL,
-  metadata JSONB,
-  recorded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  value FLOAT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS progress_tracking_user_id_idx ON progress_tracking(user_id);
+CREATE INDEX IF NOT EXISTS progress_tracking_category_idx ON progress_tracking(category);
 
 -- Flashcards table
 CREATE TABLE flashcards (
@@ -148,7 +151,6 @@ CREATE INDEX idx_sessions_session_token ON sessions(session_token);
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX idx_writing_exercises_user_id ON writing_exercises(user_id);
-CREATE INDEX idx_progress_tracking_user_id_category ON progress_tracking(user_id, category);
 CREATE INDEX idx_flashcards_user_id ON flashcards(user_id);
 CREATE INDEX idx_quiz_questions_category_level ON quiz_questions(category, level);
 CREATE INDEX idx_quiz_attempts_user_id ON quiz_attempts(user_id);

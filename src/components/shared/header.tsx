@@ -13,18 +13,18 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/" className="text-xl font-bold">
-            English AI Trainer
+            Treinador de Inglês
           </Link>
           {session && (
             <nav className="hidden md:flex space-x-4">
               <Link href="/chat" className="hover:text-primary">
-                Chat
+                Conversar
               </Link>
               <Link href="/write" className="hover:text-primary">
-                Write
+                Escrever
               </Link>
               <Link href="/profile" className="hover:text-primary">
-                Profile
+                Perfil
               </Link>
             </nav>
           )}
@@ -40,17 +40,17 @@ export function Header() {
               {session.user?.image && (
                 <img
                   src={session.user.image}
-                  alt={session.user.name || "User"}
+                  alt={session.user.name || "Usuário"}
                   className="w-8 h-8 rounded-full"
                 />
               )}
               <Button variant="outline" onClick={() => signOut()}>
-                Sign Out
+                Sair
               </Button>
             </div>
           ) : (
             <Link href="/auth/signin">
-              <Button>Sign In</Button>
+              <Button>Entrar</Button>
             </Link>
           )}
         </div>
