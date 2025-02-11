@@ -55,7 +55,6 @@ Um aplicativo web moderno para treinamento de inglês usando Inteligência Artif
 ### Backend
 - FastAPI (Serviço de IA)
 - PostgreSQL
-- Prisma ORM
 - Python 3.8+
 
 ### IA Local
@@ -107,11 +106,6 @@ cd ..
   - Chaves OAuth (Google/GitHub)
   - Token do Ngrok
   - Configurações do LM Studio
-
-5. Configure o banco de dados:
-```bash
-npx prisma migrate dev
-```
 
 ## 🚀 Executando o Projeto
 
