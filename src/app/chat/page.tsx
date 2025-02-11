@@ -12,6 +12,7 @@ import { AudioPlayer } from "@/components/chat/audio-player";
 import { PronunciationFeedback } from "@/components/chat/pronunciation-feedback";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import { ModelInfo } from "@/components/ModelInfo";
 
 interface PronunciationError {
   word: string;
@@ -45,7 +46,7 @@ interface PronunciationAnalysis {
 }
 
 export default function ChatPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [level] = useState<EnglishLevel>('intermediate');
@@ -57,12 +58,6 @@ export default function ChatPage() {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!session?.user) {
-      redirect("/auth/signin");
-    }
-  }, [session]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -70,6 +65,20 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Se ainda está carregando a sessão, mostra o loading
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Se não estiver autenticado, redireciona para login
+  if (status === "unauthenticated") {
+    redirect("/auth/signin");
+  }
 
   const handleSubmit = async (message: string) => {
     if (!message.trim() || isLoading) return;
@@ -84,7 +93,10 @@ export default function ChatPage() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.id}`
+        },
         body: JSON.stringify({
           message,
           level,
@@ -168,6 +180,7 @@ export default function ChatPage() {
 
   return (
     <div className="container max-w-4xl py-8 space-y-8">
+      <ModelInfo />
       <Card className="p-6">
         <VoiceSettingsComponent onSettingsChange={setVoiceSettings} />
       </Card>

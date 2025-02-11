@@ -73,12 +73,13 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         onClick={isRecording ? stopRecording : startRecording}
         disabled={isProcessing}
         className={`
-          px-4 py-2 rounded-full font-medium
+          px-4 py-2 rounded-full font-medium text-gray-100
           ${isRecording
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-blue-500 hover:bg-blue-600 text-white'
+            ? 'bg-red-600 hover:bg-red-700'
+            : 'bg-blue-600 hover:bg-blue-700'
           }
           ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
+          transition-colors duration-200
         `}
       >
         {isProcessing ? (
@@ -93,7 +94,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       {isRecording && (
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-          <span className="text-sm text-gray-600">Gravando...</span>
+          <span className="text-sm text-gray-300">Gravando...</span>
         </div>
       )}
     </div>

@@ -1,15 +1,9 @@
 import { LocalLLMClient } from "./local-llm-client";
-
-export interface AIServiceConfig {
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  repetitionPenalty?: number;
-}
+import type { ChatConfig, ChatResponse } from "@/lib/types/chat";
 
 export abstract class BaseAIService {
   protected client: LocalLLMClient;
-  protected defaultConfig: AIServiceConfig = {
+  protected defaultConfig: ChatConfig = {
     temperature: 0.7,
     maxTokens: 500,
     topP: 0.95,
@@ -20,13 +14,11 @@ export abstract class BaseAIService {
     this.client = new LocalLLMClient();
   }
 
-  protected async generateResponse(prompt: string, config?: AIServiceConfig): Promise<string> {
+  protected async generateResponse(prompt: string, config?: ChatConfig): Promise<string> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const response = await this.client.generateText(prompt, finalConfig);
     return response.text;
   }
 
-  protected formatPrompt(messages: Array<{ role: string; content: string }>): string {
-    return messages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-  }
+  protected abstract formatPrompt(messages: Array<{ role: string; content: string }>): string;
 } 

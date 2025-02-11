@@ -1,10 +1,6 @@
-import { BaseAIService, AIServiceConfig } from "./base-ai-service";
+import { BaseAIService } from "./base-ai-service";
 import { createSystemPrompt, createConversationContext, type EnglishLevel } from "@/lib/prompts/english-training";
-
-export interface ChatMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-}
+import type { ChatMessage, ChatConfig, ChatResponse } from "@/lib/types/chat";
 
 export class ChatService extends BaseAIService {
   constructor() {
@@ -18,7 +14,7 @@ export class ChatService extends BaseAIService {
   async startConversation(
     topic: string,
     level: EnglishLevel = "intermediate",
-    config?: AIServiceConfig
+    config?: ChatConfig
   ): Promise<string> {
     const messages: ChatMessage[] = [
       {
@@ -32,20 +28,22 @@ export class ChatService extends BaseAIService {
     ];
 
     const prompt = this.formatPrompt(messages);
-    return this.generateResponse(prompt, config);
+    const response = await this.generateResponse(prompt, config);
+    return response;
   }
 
   async sendMessage(
     message: string,
     conversationHistory: ChatMessage[],
-    config?: AIServiceConfig
+    config?: ChatConfig
   ): Promise<string> {
     const messages: ChatMessage[] = [
       ...conversationHistory,
-      { role: "user" as const, content: message }
+      { role: "user", content: message }
     ];
 
     const prompt = this.formatPrompt(messages);
-    return this.generateResponse(prompt, config);
+    const response = await this.generateResponse(prompt, config);
+    return response;
   }
 } 

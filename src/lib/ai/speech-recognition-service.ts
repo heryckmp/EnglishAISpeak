@@ -11,7 +11,7 @@ interface SpeechRecognitionOptions {
   interimResults?: boolean;
 }
 
-interface SpeechRecognitionResult {
+export interface SpeechRecognitionResult {
   text: string;
   confidence: number;
   language?: string;
@@ -23,14 +23,32 @@ interface SpeechRecognitionResult {
   }>;
 }
 
-export class SpeechRecognitionService extends BaseAIService {
-  private recognition: any;
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+        confidence: number;
+      };
+      isFinal: boolean;
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+export class SpeechRecognitionService extends EventEmitter {
+  private baseService: BaseAIService;
+  private recognition: SpeechRecognition | null = null;
   private provider: SpeechProvider;
   private language: SpeechLanguage;
   private isListening: boolean = false;
 
   constructor(options: SpeechRecognitionOptions = {}) {
     super();
+    this.baseService = new BaseAIService();
     this.provider = options.provider || 'browser';
     this.language = options.language || 'en-US';
     this.setupRecognition(options);
@@ -39,42 +57,44 @@ export class SpeechRecognitionService extends BaseAIService {
   private setupRecognition(options: SpeechRecognitionOptions) {
     if (this.provider === 'browser') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      this.recognition.continuous = options.continuous ?? true;
-      this.recognition.interimResults = options.interimResults ?? true;
-      this.recognition.lang = this.language;
+      if (SpeechRecognition) {
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = options.continuous ?? true;
+        this.recognition.interimResults = options.interimResults ?? true;
+        this.recognition.lang = this.language;
 
-      this.recognition.onresult = (event: any) => {
-        const result = event.results[event.results.length - 1];
-        this.emit('result', {
-          text: result[0].transcript,
-          isFinal: result.isFinal,
-          confidence: result[0].confidence
-        });
-      };
+        this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+          const result = event.results[event.results.length - 1];
+          this.emit('result', {
+            text: result[0].transcript,
+            isFinal: result.isFinal,
+            confidence: result[0].confidence
+          });
+        };
 
-      this.recognition.onerror = (event: any) => {
-        this.emit('error', event.error);
-      };
+        this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          this.emit('error', event.error);
+        };
 
-      this.recognition.onend = () => {
-        this.isListening = false;
-        this.emit('end');
-      };
+        this.recognition.onend = () => {
+          this.isListening = false;
+          this.emit('end');
+        };
+      }
     }
     // TODO: Implementar Vosk e Whisper
   }
 
   public start() {
-    if (this.isListening) return;
+    if (this.isListening || !this.recognition) return;
     this.isListening = true;
-    this.recognition?.start();
+    this.recognition.start();
   }
 
   public stop() {
-    if (!this.isListening) return;
+    if (!this.isListening || !this.recognition) return;
     this.isListening = false;
-    this.recognition?.stop();
+    this.recognition.stop();
   }
 
   public setLanguage(language: SpeechLanguage) {
@@ -88,15 +108,12 @@ export class SpeechRecognitionService extends BaseAIService {
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
-  async transcribeAudio(audioBlob: Blob, config?: AIServiceConfig): Promise<SpeechRecognitionResult> {
+  async transcribeAudio(audioBlob: Blob): Promise<SpeechRecognitionResult> {
     try {
-      // Converter o Blob para FormData
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.wav');
-      formData.append('model', 'whisper-1');
       
-      const baseUrl = await this.ensureConnection();
-      const response = await fetch(`${baseUrl}/transcribe`, {
+      const response = await fetch('/api/speech/transcribe', {
         method: 'POST',
         body: formData,
       });
@@ -108,9 +125,9 @@ export class SpeechRecognitionService extends BaseAIService {
       const result = await response.json();
       return {
         text: result.text,
-        confidence: result.confidence || 1.0,
+        confidence: result.segments.reduce((acc: number, segment: any) => acc + segment.confidence, 0) / result.segments.length,
         language: result.language,
-        segments: result.segments,
+        segments: result.segments
       };
     } catch (error) {
       console.error('Speech recognition error:', error);
@@ -124,8 +141,7 @@ export class SpeechRecognitionService extends BaseAIService {
       formData.append('audio', audioBlob, 'audio.wav');
       formData.append('task', 'detect-language');
       
-      const baseUrl = await this.ensureConnection();
-      const response = await fetch(`${baseUrl}/detect-language`, {
+      const response = await fetch(`${process.env.LLM_API_URL}/detect-language`, {
         method: 'POST',
         body: formData,
       });
@@ -143,10 +159,10 @@ export class SpeechRecognitionService extends BaseAIService {
   }
 }
 
-// Adicionar ao window para TypeScript
+// Tipos para o reconhecimento de voz nativo
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
   }
 } 

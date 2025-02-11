@@ -1,4 +1,3 @@
-import ngrok from 'ngrok';
 import { ngrokConfig } from '../config/ngrok';
 
 export class NgrokService {
@@ -21,24 +20,24 @@ export class NgrokService {
     }
 
     try {
-      // Configurar o ngrok com o token de autenticação
-      if (ngrokConfig.ngrok.authtoken) {
-        await ngrok.authtoken(ngrokConfig.ngrok.authtoken);
+      const response = await fetch('/api/tunnel');
+      if (!response.ok) {
+        throw new Error('Failed to establish tunnel');
       }
 
-      // Iniciar o túnel
-      this.tunnelUrl = await ngrok.connect({
-        addr: ngrokConfig.ngrok.addr,
-        region: ngrokConfig.ngrok.region,
-      });
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
+      this.tunnelUrl = data.url;
       this.isConnected = true;
-      console.log('Ngrok tunnel established:', this.tunnelUrl);
+      console.log('Tunnel established:', this.tunnelUrl);
       
       return this.tunnelUrl;
     } catch (error) {
-      console.error('Failed to establish ngrok tunnel:', error);
-      throw new Error('Failed to establish ngrok tunnel');
+      console.error('Failed to establish tunnel:', error);
+      throw new Error('Failed to establish tunnel');
     }
   }
 
@@ -48,16 +47,20 @@ export class NgrokService {
     }
 
     try {
-      await ngrok.disconnect();
-      await ngrok.kill();
-      
+      const response = await fetch('/api/tunnel', {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect tunnel');
+      }
+
       this.tunnelUrl = null;
       this.isConnected = false;
-      
-      console.log('Ngrok tunnel disconnected');
+      console.log('Tunnel disconnected');
     } catch (error) {
-      console.error('Failed to disconnect ngrok tunnel:', error);
-      throw new Error('Failed to disconnect ngrok tunnel');
+      console.error('Failed to disconnect tunnel:', error);
+      throw new Error('Failed to disconnect tunnel');
     }
   }
 

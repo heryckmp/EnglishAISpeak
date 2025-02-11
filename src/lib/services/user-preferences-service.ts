@@ -16,7 +16,6 @@ export interface UserPreferences {
   };
   
   // UI preferences
-  theme: "light" | "dark" | "system";
   fontSize: "small" | "medium" | "large";
   showTranscriptions: boolean;
   enableSoundEffects: boolean;
@@ -48,7 +47,6 @@ export class UserPreferencesService {
       pitch: 1.0,
     },
     
-    theme: "system",
     fontSize: "medium",
     showTranscriptions: true,
     enableSoundEffects: true,
@@ -128,7 +126,7 @@ export class UserPreferencesService {
 
   async updateUIPreferences(
     userId: string,
-    updates: Partial<Pick<UserPreferences, "theme" | "fontSize" | "showTranscriptions" | "enableSoundEffects">>
+    updates: Partial<Pick<UserPreferences, "fontSize" | "showTranscriptions" | "enableSoundEffects">>
   ): Promise<UserPreferences> {
     return this.updatePreferences(userId, updates);
   }

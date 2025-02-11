@@ -33,9 +33,21 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Prisma
+/prisma/migrations/
+/prisma/*.db
+/prisma/*.sqlite
+
+# temp files
+/tmp
+*.temp
+*.tmp
+
 # IDE
-.vscode/
-.idea/
+.idea
+.vscode
+*.swp
+*.swo
 
 # OS generated files
 .DS_Store

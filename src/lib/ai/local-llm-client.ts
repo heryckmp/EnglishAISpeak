@@ -1,20 +1,5 @@
 import { NgrokService } from '../services/ngrok-service';
-
-export interface LLMConfig {
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  repetitionPenalty?: number;
-}
-
-export interface LLMResponse {
-  text: string;
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-}
+import type { ChatConfig, ChatResponse } from '@/lib/types/chat';
 
 export class LocalLLMClient {
   private ngrokService: NgrokService;
@@ -31,7 +16,7 @@ export class LocalLLMClient {
     return this.baseUrl;
   }
 
-  async generateText(prompt: string, config: LLMConfig): Promise<LLMResponse> {
+  async generateText(prompt: string, config: ChatConfig): Promise<ChatResponse> {
     try {
       const baseUrl = await this.ensureConnection();
 
@@ -50,17 +35,12 @@ export class LocalLLMClient {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      return {
-        text: data.text,
-        usage: data.usage,
-      };
+      return await response.json();
     } catch (error) {
       console.error('Error generating text:', error);
       
-      // Se houver erro de conexão, tenta reconectar
       if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
-        this.baseUrl = null; // Força uma nova conexão na próxima tentativa
+        this.baseUrl = null;
         throw new Error('Failed to connect to local LLM service. Please ensure the service is running.');
       }
       
