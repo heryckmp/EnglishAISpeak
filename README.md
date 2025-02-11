@@ -5,37 +5,79 @@ Um aplicativo web moderno para treinamento de inglês usando Inteligência Artif
 ## 🚀 Características
 
 - 💬 Conversação em inglês com IA
-- 🎯 Exercícios personalizados
-- 🎤 Prática de pronúncia
-- ✍️ Treino de escrita com feedback
-- 📊 Acompanhamento de progresso
-- 🏆 Sistema de conquistas
-- 🎨 Interface moderna e responsiva
+  - Chat interativo com professor virtual
+  - Correções em tempo real
+  - Explicações em português
+  - Feedback detalhado
+
+- ✍️ Assistente de Escrita
+  - Análise detalhada de textos
+  - Correções gramaticais
+  - Sugestões de vocabulário
+  - Exemplos de escrita com correções
+  - Feedback em português
+  - Métricas de avaliação:
+    - Gramática
+    - Vocabulário
+    - Coerência
+    - Pontuação geral
+
+- 🎤 Prática de Pronúncia
+  - Avaliação em tempo real
+  - Detecção de erros fonéticos
+  - Sugestões de melhoria
+  - Feedback visual
+
+- 📊 Acompanhamento de Progresso
+  - Histórico de práticas
+  - Estatísticas de evolução
+  - Áreas de melhoria
+
+- 🏆 Sistema de Conquistas
+  - Recompensas por progresso
+  - Metas diárias
+  - Níveis de habilidade
+
+- 🎨 Interface Moderna
+  - Design responsivo
+  - Tema escuro/claro
+  - Experiência intuitiva
 
 ## 🛠️ Tecnologias
 
-- **Frontend:**
-  - Next.js 13+
-  - TypeScript
-  - TailwindCSS
-  - NextAuth.js
+### Frontend
+- Next.js 13+
+- TypeScript
+- TailwindCSS
+- NextAuth.js
+- Shadcn/ui
 
-- **Backend:**
-  - FastAPI (Serviço de IA)
-  - PostgreSQL
-  - Prisma ORM
+### Backend
+- FastAPI (Serviço de IA)
+- PostgreSQL
+- Prisma ORM
+- Python 3.8+
 
-- **IA Local:**
-  - Microsoft Phi-2 (Modelo leve para execução local)
-  - Transformers
-  - PyTorch
-  - Ngrok (Túnel seguro)
+### IA Local
+- LM Studio
+  - Suporte a múltiplos modelos:
+    - Microsoft Phi-2
+    - Mistral
+    - Llama 2
+  - Configuração flexível
+  - Baixa latência
+
+### Integração
+- Ngrok (túnel seguro)
+- WebSockets
+- API REST
 
 ## 📋 Pré-requisitos
 
 - Node.js 18+
 - Python 3.8+
 - PostgreSQL
+- LM Studio
 - Conta Ngrok (gratuita)
 
 ## 🔧 Instalação
@@ -64,6 +106,7 @@ cd ..
   - Configurações do PostgreSQL
   - Chaves OAuth (Google/GitHub)
   - Token do Ngrok
+  - Configurações do LM Studio
 
 5. Configure o banco de dados:
 ```bash
@@ -72,55 +115,85 @@ npx prisma migrate dev
 
 ## 🚀 Executando o Projeto
 
-1. Inicie o serviço de IA local:
+1. Inicie o LM Studio:
+   - Abra o LM Studio
+   - Carregue o modelo desejado
+   - Inicie o servidor na porta 1234
+
+2. Inicie o serviço de IA local:
 ```bash
 npm run start-local-ai
 ```
 
-2. Em outro terminal, inicie o servidor de desenvolvimento:
+3. Em outro terminal, inicie o servidor de desenvolvimento:
 ```bash
 npm run dev
 ```
 
 O aplicativo estará disponível em `http://localhost:3000`
 
+## 📱 Funcionalidades Principais
+
+### 🤖 Chat com IA
+- Conversação natural em inglês
+- Correções instantâneas
+- Explicações em português
+- Adaptação ao nível do usuário
+
+### ✍️ Assistente de Escrita
+- Análise completa de textos
+- Métricas detalhadas
+- Sugestões de melhoria
+- Exemplos práticos
+- Feedback personalizado
+
+### 🎤 Treino de Pronúncia
+- Reconhecimento de voz
+- Avaliação fonética
+- Feedback visual
+- Exercícios práticos
+
 ## 🔄 Fluxo de Trabalho
 
 1. **Autenticação:**
    - Login com Google ou GitHub
-   - Gerenciamento de sessão com NextAuth.js
+   - Gerenciamento de sessão
 
 2. **Personalização:**
-   - Definição de nível de inglês
-   - Escolha de objetivos de aprendizado
-   - Configuração de preferências
+   - Definição de nível
+   - Objetivos de aprendizado
+   - Preferências de estudo
 
 3. **Prática:**
-   - Exercícios gerados por IA
+   - Escolha da atividade
    - Feedback em tempo real
    - Acompanhamento de progresso
-   - Sistema de conquistas
+   - Conquistas e recompensas
 
 ## 🏗️ Arquitetura
 
 ### Serviços Principais
 
 - **AI Services:**
-  - ChatService: Conversação em inglês
-  - WritingService: Análise e correção de texto
-  - PronunciationService: Avaliação de pronúncia
+  - ChatService: Conversação
+  - WritingService: Análise de texto
+  - PronunciationService: Avaliação de fala
   - SpeechSynthesisService: Síntese de voz
 
 - **Core Services:**
-  - UserPreferencesService: Gerenciamento de preferências
-  - PracticeTrackingService: Acompanhamento de progresso
-  - ExerciseService: Geração de exercícios
-  - AchievementService: Sistema de gamificação
-  - FeedbackService: Feedback dos usuários
+  - UserPreferencesService
+  - PracticeTrackingService
+  - ExerciseService
+  - AchievementService
+  - FeedbackService
 
 ### IA Local
 
-O projeto utiliza o modelo Microsoft Phi-2, um modelo leve e eficiente que pode rodar em hardware comum. A comunicação é feita através de um túnel Ngrok seguro, evitando problemas de CORS e permitindo acesso externo quando necessário.
+O projeto utiliza o LM Studio para rodar modelos de linguagem localmente:
+- Baixa latência
+- Privacidade dos dados
+- Flexibilidade de modelos
+- Customização de parâmetros
 
 ## 🤝 Contribuindo
 
@@ -138,4 +211,4 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 - Abra uma issue para reportar bugs
 - Sugestões de features são bem-vindas
-- Dúvidas podem ser enviadas através das issues 
+- Dúvidas podem ser enviadas através das issues
