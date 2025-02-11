@@ -23,7 +23,7 @@ interface ConversationListProps {
 }
 
 export function ConversationList({
-  conversations,
+  conversations = [],
   currentConversation,
   onSelectConversation,
   onNewConversation,
@@ -31,9 +31,9 @@ export function ConversationList({
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filtrar conversas
-  const filteredConversations = conversations.filter((conversation) =>
-    conversation.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredConversations = conversations?.filter((conversation) =>
+    conversation?.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   // Formatar data
   const formatDate = (dateString: string) => {
@@ -64,7 +64,7 @@ export function ConversationList({
       <div className="flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
-            No conversations found
+            {searchTerm ? "No conversations found" : "Start a new conversation"}
           </div>
         ) : (
           <div className="space-y-2 p-2">
@@ -78,7 +78,7 @@ export function ConversationList({
                 <MessageSquare className="h-4 w-4 mr-2" />
                 <div className="flex-1 text-left">
                   <div className="font-medium truncate">
-                    {conversation.title}
+                    {conversation.title || "New Conversation"}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {formatDate(conversation.created_at)} • {conversation.message_count} messages

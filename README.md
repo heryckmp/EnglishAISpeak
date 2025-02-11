@@ -1,165 +1,141 @@
-# English AI Speak 🎯
+# English AI Trainer
 
-Um aplicativo web moderno para praticar inglês usando Inteligência Artificial, com suporte a chat por voz e texto, correções em tempo real e múltiplos modelos de IA.
+Um aplicativo web moderno para treinamento de inglês usando Inteligência Artificial local.
 
-## 🌟 Funcionalidades
+## 🚀 Características
 
-- **Chat Interativo**: Pratique conversação em inglês com diferentes modelos de IA
-- **Reconhecimento de Voz**: Suporte para entrada por voz usando Web Speech API ou Whisper
-- **Síntese de Voz**: Respostas em áudio usando TTS (Text-to-Speech)
-- **Múltiplos Modelos**: Suporte para OpenRouter (Claude 3, GPT-4, etc.) e modelos locais
-- **Correções em Tempo Real**: Feedback instantâneo sobre erros gramaticais e pronúncia
-- **Níveis Personalizados**: Adapte o nível de dificuldade (iniciante, intermediário, avançado)
-- **Interface Moderna**: UI responsiva e intuitiva usando Next.js 14 e Tailwind CSS
-- **Autenticação**: Login social com Google e GitHub
+- 💬 Conversação em inglês com IA
+- 🎯 Exercícios personalizados
+- 🎤 Prática de pronúncia
+- ✍️ Treino de escrita com feedback
+- 📊 Acompanhamento de progresso
+- 🏆 Sistema de conquistas
+- 🎨 Interface moderna e responsiva
 
-## 🚀 Tecnologias
+## 🛠️ Tecnologias
 
-- **Frontend**: Next.js 14, React, TypeScript
-- **Estilização**: Tailwind CSS, Shadcn UI
-- **Backend**: Next.js API Routes, PostgreSQL
-- **Autenticação**: NextAuth.js
-- **IA**: OpenRouter API, Whisper API
-- **Outros**: Web Speech API, WebRTC
+- **Frontend:**
+  - Next.js 13+
+  - TypeScript
+  - TailwindCSS
+  - NextAuth.js
+
+- **Backend:**
+  - FastAPI (Serviço de IA)
+  - PostgreSQL
+  - Prisma ORM
+
+- **IA Local:**
+  - Microsoft Phi-2 (Modelo leve para execução local)
+  - Transformers
+  - PyTorch
+  - Ngrok (Túnel seguro)
 
 ## 📋 Pré-requisitos
 
 - Node.js 18+
+- Python 3.8+
 - PostgreSQL
-- Conta no OpenRouter (para acesso aos modelos de IA)
-- (Opcional) Chave API do Whisper para reconhecimento de voz avançado
+- Conta Ngrok (gratuita)
 
-## 🛠️ Instalação
+## 🔧 Instalação
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/heryckmp/EnglishAISpeak.git
-cd EnglishAISpeak
+git clone https://github.com/seu-usuario/english-ai-trainer.git
+cd english-ai-trainer
 ```
 
-2. Instale as dependências:
+2. Instale as dependências do Node.js:
 ```bash
 npm install
 ```
 
-3. Configure as variáveis de ambiente:
+3. Instale as dependências Python:
 ```bash
-cp .env.example .env
+cd ai-service
+pip install -r requirements.txt
+cd ..
 ```
 
-4. Configure o banco de dados:
-```bash
-# Crie o banco de dados PostgreSQL
-createdb english_ai_trainer
+4. Configure as variáveis de ambiente:
+- Copie o arquivo `.env.example` para `.env`
+- Preencha as variáveis necessárias:
+  - Configurações do PostgreSQL
+  - Chaves OAuth (Google/GitHub)
+  - Token do Ngrok
 
-# Execute as migrações do banco
-psql -d english_ai_trainer -f sql/schema.sql
+5. Configure o banco de dados:
+```bash
+npx prisma migrate dev
 ```
 
-5. Inicie o servidor de desenvolvimento:
+## 🚀 Executando o Projeto
+
+1. Inicie o serviço de IA local:
+```bash
+npm run start-local-ai
+```
+
+2. Em outro terminal, inicie o servidor de desenvolvimento:
 ```bash
 npm run dev
 ```
 
-## ⚙️ Configuração
+O aplicativo estará disponível em `http://localhost:3000`
 
-### Variáveis de Ambiente
+## 🔄 Fluxo de Trabalho
 
-Copie o arquivo `.env.example` para `.env` e configure as seguintes variáveis:
+1. **Autenticação:**
+   - Login com Google ou GitHub
+   - Gerenciamento de sessão com NextAuth.js
 
-```env
-# Database
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/english_ai_trainer?schema=public"
+2. **Personalização:**
+   - Definição de nível de inglês
+   - Escolha de objetivos de aprendizado
+   - Configuração de preferências
 
-# Authentication
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="" # Gere com: openssl rand -base64 32
+3. **Prática:**
+   - Exercícios gerados por IA
+   - Feedback em tempo real
+   - Acompanhamento de progresso
+   - Sistema de conquistas
 
-# OAuth Providers
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
-GITHUB_ID=""
-GITHUB_SECRET=""
+## 🏗️ Arquitetura
 
-# LLM Provider
-LLM_PROVIDER="openrouter" # Opções: openrouter, local, openai
+### Serviços Principais
 
-# OpenRouter API
-OPENROUTER_API_KEY="" # Obtenha em: https://openrouter.ai/keys
+- **AI Services:**
+  - ChatService: Conversação em inglês
+  - WritingService: Análise e correção de texto
+  - PronunciationService: Avaliação de pronúncia
+  - SpeechSynthesisService: Síntese de voz
 
-# Configuração de Modelos Locais (opcional)
-ENABLE_LLAMA2="false"
-LLAMA2_API_URL="http://localhost:8000"
+- **Core Services:**
+  - UserPreferencesService: Gerenciamento de preferências
+  - PracticeTrackingService: Acompanhamento de progresso
+  - ExerciseService: Geração de exercícios
+  - AchievementService: Sistema de gamificação
+  - FeedbackService: Feedback dos usuários
 
-ENABLE_MISTRAL="false"
-MISTRAL_API_URL="http://localhost:8001"
+### IA Local
 
-ENABLE_PHI2="false"
-PHI2_API_URL="http://localhost:8002"
-```
-
-### OAuth Setup
-
-1. **Google OAuth**:
-   - Acesse [Google Cloud Console](https://console.cloud.google.com)
-   - Crie um novo projeto
-   - Configure as credenciais OAuth
-   - Adicione URLs de redirecionamento: `http://localhost:3000/api/auth/callback/google`
-
-2. **GitHub OAuth**:
-   - Acesse [GitHub Developer Settings](https://github.com/settings/developers)
-   - Crie um novo OAuth App
-   - Adicione URL de callback: `http://localhost:3000/api/auth/callback/github`
-
-### OpenRouter Setup
-
-1. Crie uma conta em [OpenRouter](https://openrouter.ai)
-2. Gere uma chave API
-3. Adicione a chave ao seu arquivo `.env`
-
-## 🎯 Uso
-
-### Chat por Texto
-
-1. Faça login usando Google ou GitHub
-2. Acesse a página de chat
-3. Selecione o nível de dificuldade
-4. Escolha o modelo de IA desejado
-5. Comece a conversar!
-
-### Chat por Voz
-
-1. Clique no botão "Show Voice Recorder"
-2. Selecione o idioma (se não estiver usando Whisper)
-3. Clique em "Start Recording"
-4. Fale sua mensagem
-5. Clique em "Stop" para enviar
-
-### Correções
-
-O sistema fornecerá correções no seguinte formato:
-```
-Original: I have 23 years
-Corrected: I am 23 years old
-Explanation: In English, we use "am/is/are" + "years old" to express age
-```
+O projeto utiliza o modelo Microsoft Phi-2, um modelo leve e eficiente que pode rodar em hardware comum. A comunicação é feita através de um túnel Ngrok seguro, evitando problemas de CORS e permitindo acesso externo quando necessário.
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Por favor, leia nosso guia de contribuição antes de enviar um PR.
-
 1. Faça um Fork do projeto
-2. Crie sua Feature Branch (`git checkout -b feature/AmazingFeature`)
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a Branch (`git push origin feature/AmazingFeature`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
 ## 📝 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## 📧 Contato
+## 📞 Suporte
 
-Erick Moreira - [@heryckmp](https://github.com/heryckmp)
-
-Link do Projeto: [https://github.com/heryckmp/EnglishAISpeak](https://github.com/heryckmp/EnglishAISpeak) 
+- Abra uma issue para reportar bugs
+- Sugestões de features são bem-vindas
+- Dúvidas podem ser enviadas através das issues 

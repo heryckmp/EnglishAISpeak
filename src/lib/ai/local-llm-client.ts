@@ -1,135 +1,75 @@
-import config from "@/lib/config";
+import { NgrokService } from '../services/ngrok-service';
 
-interface LocalLLMMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-}
-
-interface LocalLLMResponse {
-  text: string;
-  model: string;
-}
-
-interface LocalLLMOptions {
+export interface LLMConfig {
   temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  stop?: string[];
+  maxTokens?: number;
+  topP?: number;
+  repetitionPenalty?: number;
+}
+
+export interface LLMResponse {
+  text: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export class LocalLLMClient {
-  private model: "llama2" | "mistral" | "phi2";
-  private apiUrl: string;
+  private ngrokService: NgrokService;
+  private baseUrl: string | null = null;
 
-  constructor(model: "llama2" | "mistral" | "phi2") {
-    this.model = model;
-    switch (model) {
-      case "llama2":
-        this.apiUrl = process.env.LLAMA2_API_URL || "http://localhost:8000";
-        break;
-      case "mistral":
-        this.apiUrl = process.env.MISTRAL_API_URL || "http://localhost:8001";
-        break;
-      case "phi2":
-        this.apiUrl = process.env.PHI2_API_URL || "http://localhost:8002";
-        break;
+  constructor() {
+    this.ngrokService = NgrokService.getInstance();
+  }
+
+  private async ensureConnection(): Promise<string> {
+    if (!this.baseUrl) {
+      this.baseUrl = await this.ngrokService.connect();
     }
+    return this.baseUrl;
   }
 
-  static getAvailableModels() {
-    return {
-      llama2: process.env.ENABLE_LLAMA2 === "true",
-      mistral: process.env.ENABLE_MISTRAL === "true",
-      phi2: process.env.ENABLE_PHI2 === "true",
-    };
-  }
-
-  async chat(
-    messages: LocalLLMMessage[],
-    options: LocalLLMOptions = {}
-  ): Promise<LocalLLMResponse> {
+  async generateText(prompt: string, config: LLMConfig): Promise<LLMResponse> {
     try {
-      const response = await fetch(`${this.apiUrl}/v1/chat/completions`, {
-        method: "POST",
+      const baseUrl = await this.ensureConnection();
+
+      const response = await fetch(`${baseUrl}/generate`, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages,
-          temperature: options.temperature,
-          max_tokens: options.max_tokens,
-          top_p: options.top_p,
-          stop: options.stop,
+          prompt,
+          ...config,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Local LLM API error: ${response.statusText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       return {
-        text: data.choices[0].message.content,
-        model: this.model,
+        text: data.text,
+        usage: data.usage,
       };
     } catch (error) {
-      console.error("Local LLM chat error:", error);
+      console.error('Error generating text:', error);
+      
+      // Se houver erro de conexão, tenta reconectar
+      if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
+        this.baseUrl = null; // Força uma nova conexão na próxima tentativa
+        throw new Error('Failed to connect to local LLM service. Please ensure the service is running.');
+      }
+      
       throw error;
     }
   }
 
-  async *streamChat(
-    messages: LocalLLMMessage[],
-    options: LocalLLMOptions = {}
-  ): AsyncGenerator<string, void, unknown> {
-    try {
-      const response = await fetch(`${this.apiUrl}/v1/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages,
-          temperature: options.temperature,
-          max_tokens: options.max_tokens,
-          top_p: options.top_p,
-          stop: options.stop,
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Local LLM API error: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error("Failed to get response reader");
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk
-          .split("\n")
-          .filter((line) => line.trim().startsWith("data: "));
-
-        for (const line of lines) {
-          const data = JSON.parse(line.slice(6));
-          if (data.choices?.[0]?.delta?.content) {
-            yield data.choices[0].delta.content;
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Local LLM stream chat error:", error);
-      throw error;
-    }
+  async disconnect(): Promise<void> {
+    await this.ngrokService.disconnect();
+    this.baseUrl = null;
   }
-}
-
-export type { LocalLLMMessage, LocalLLMResponse, LocalLLMOptions }; 
+} 

@@ -3,6 +3,10 @@ import { auth } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { WritingService } from "@/lib/services/writing-service";
 import { z } from "zod";
+import { NextResponse } from "next/server";
+import { ChatService } from "@/lib/ai/chat-service";
+import { createWritingAnalysisPrompt } from "@/lib/prompts/writing-prompts";
+import { type EnglishLevel } from "@/lib/prompts/english-training";
 
 const analyzeRequestSchema = z.object({
   content: z.string().min(1),
@@ -12,82 +16,36 @@ const analyzeRequestSchema = z.object({
   focusAreas: z.array(z.string()).optional(),
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Check authentication
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const { text, level } = await request.json();
 
-    // Validate request body
-    const body = await req.json();
-    const validatedData = analyzeRequestSchema.parse(body);
-
-    // Get or create exercise
-    const [exercise] = await query({
-      query: `
-        INSERT INTO writing_exercises (
-          user_id,
-          content,
-          title,
-          topic,
-          level,
-          focus_areas
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        RETURNING id, created_at, updated_at
-      `,
-      values: [
-        session.user.id,
-        validatedData.content,
-        validatedData.title || null,
-        validatedData.topic || null,
-        validatedData.level || null,
-        validatedData.focusAreas ? JSON.stringify(validatedData.focusAreas) : null,
-      ],
-    });
-
-    // Analyze text
-    const analysis = await WritingService.analyzeText(
-      validatedData.content,
-      validatedData.title,
-      validatedData.topic,
-      validatedData.level,
-      validatedData.focusAreas
-    );
-
-    // Save analysis
-    await query({
-      query: `
-        UPDATE writing_exercises
-        SET analysis = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `,
-      values: [JSON.stringify(analysis), exercise.id],
-    });
-
-    return Response.json({
-      id: exercise.id,
-      analysis,
-      createdAt: exercise.created_at,
-      updatedAt: exercise.updated_at,
-    });
-  } catch (error) {
-    console.error("Error analyzing text:", error);
-    
-    if (error instanceof z.ZodError) {
-      return Response.json(
-        { error: "Invalid request data", details: error.errors },
+    if (!text || !level) {
+      return NextResponse.json(
+        { error: "Text and level are required" },
         { status: 400 }
       );
     }
 
-    return Response.json(
-      { error: "Internal server error" },
+    const chatService = new ChatService(process.env.HUGGINGFACE_API_KEY);
+    const prompt = createWritingAnalysisPrompt(text, level as EnglishLevel);
+    const response = await chatService.englishChat(prompt, level as EnglishLevel);
+
+    try {
+      // Tentar fazer o parse da resposta como JSON
+      const analysis = JSON.parse(response);
+      return NextResponse.json(analysis);
+    } catch (parseError) {
+      console.error("Failed to parse AI response as JSON:", parseError);
+      return NextResponse.json(
+        { error: "Failed to parse analysis results" },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error("Error analyzing writing:", error);
+    return NextResponse.json(
+      { error: "Failed to analyze writing" },
       { status: 500 }
     );
   }

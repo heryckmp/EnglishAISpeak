@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { WritingAnalysis } from "@/components/writing/writing-analysis";
+import { ModelSelector } from "@/components/shared/model-selector";
 
 const WRITING_PROMPTS = [
   {
@@ -32,25 +35,34 @@ export default function WritePage() {
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [feedback, setFeedback] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [currentModel, setCurrentModel] = useState("anthropic/claude-3-opus");
 
   const handleAnalyze = async () => {
     if (!content.trim()) return;
-    
-    setIsAnalyzing(true);
+
     try {
+      setIsAnalyzing(true);
       const response = await fetch("/api/write/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, title }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+          title,
+          model: currentModel,
+        }),
       });
-      
-      const data = await response.json();
-      if (response.ok) {
-        setFeedback(data);
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze text");
       }
+
+      const data = await response.json();
+      setAnalysis(data.analysis);
     } catch (error) {
-      console.error("Failed to analyze:", error);
+      console.error("Analysis error:", error);
     } finally {
       setIsAnalyzing(false);
     }
@@ -78,7 +90,7 @@ export default function WritePage() {
                 onClick={() => {
                   setTitle(prompt.title);
                   setContent("");
-                  setFeedback(null);
+                  setAnalysis(null);
                 }}
               >
                 <div className="font-medium">{prompt.title}</div>
@@ -94,6 +106,13 @@ export default function WritePage() {
         {/* Writing Area */}
         <div className="md:col-span-2 space-y-4">
           <Card className="p-4">
+            <div className="mb-4 flex justify-between items-center">
+              <h2 className="font-semibold mb-4">Writing Practice</h2>
+              <ModelSelector
+                currentModel={currentModel}
+                onModelChange={setCurrentModel}
+              />
+            </div>
             <div className="mb-4">
               <Input
                 placeholder="Title of your writing"
@@ -102,7 +121,7 @@ export default function WritePage() {
                 className="text-lg font-medium"
               />
             </div>
-            <textarea
+            <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Start writing here..."
@@ -116,44 +135,16 @@ export default function WritePage() {
                 onClick={handleAnalyze}
                 disabled={!content.trim() || isAnalyzing}
               >
-                {isAnalyzing ? "Analyzing..." : "Get Feedback"}
+                {isAnalyzing ? "Analyzing..." : "Analyze"}
               </Button>
             </div>
           </Card>
 
           {/* Feedback Area */}
-          {feedback && (
+          {analysis && (
             <Card className="p-4">
               <h2 className="font-semibold mb-4">Writing Analysis</h2>
-              <div className="space-y-4">
-                {/* Grammar Score */}
-                <div className="flex items-center justify-between p-2 bg-muted rounded">
-                  <span>Grammar Score</span>
-                  <span className="font-bold">Coming Soon</span>
-                </div>
-                
-                {/* Vocabulary Usage */}
-                <div className="flex items-center justify-between p-2 bg-muted rounded">
-                  <span>Vocabulary Level</span>
-                  <span className="font-bold">Coming Soon</span>
-                </div>
-
-                {/* Suggestions */}
-                <div>
-                  <h3 className="font-medium mb-2">Suggestions</h3>
-                  <div className="text-muted-foreground">
-                    Analysis feature coming soon...
-                  </div>
-                </div>
-
-                {/* Improvements */}
-                <div>
-                  <h3 className="font-medium mb-2">Recommended Improvements</h3>
-                  <div className="text-muted-foreground">
-                    Detailed feedback will be available soon...
-                  </div>
-                </div>
-              </div>
+              <WritingAnalysis analysis={analysis} />
             </Card>
           )}
         </div>

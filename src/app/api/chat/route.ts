@@ -1,46 +1,31 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 import { ChatService } from "@/lib/ai/chat-service";
-import { v4 as uuidv4 } from "uuid";
+import { EnglishLevel } from "@/lib/prompts/english-training";
 
-export async function POST(request: NextRequest) {
+const chatService = new ChatService(process.env.HUGGINGFACE_API_KEY);
+
+export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { message, level, previousMessages } = await req.json();
 
-    const { message, level, model } = await request.json();
     if (!message) {
-      return Response.json({ error: "Message is required" }, { status: 400 });
+      return Response.json(
+        { error: "Message is required" },
+        { status: 400 }
+      );
     }
 
-    const chatService = new ChatService();
-    if (model) {
-      chatService.setModel(model);
-    }
+    const response = await chatService.englishChat(
+      message,
+      level as EnglishLevel,
+      previousMessages
+    );
 
-    const response = await chatService.englishChat(message, level || "intermediate");
-
-    // Criar mensagens para retornar
-    const messages = [
-      {
-        id: uuidv4(),
-        content: message,
-        role: "user" as const,
-      },
-      {
-        id: uuidv4(),
-        content: response,
-        role: "assistant" as const,
-      },
-    ];
-
-    return Response.json({ messages });
+    return Response.json({ message: response });
   } catch (error) {
     console.error("Chat API error:", error);
     return Response.json(
-      { error: "Failed to process chat message" },
+      { error: "Failed to process message" },
       { status: 500 }
     );
   }

@@ -42,6 +42,46 @@ CREATE TABLE IF NOT EXISTS verification_tokens (
   UNIQUE(identifier, token)
 );
 
+-- Conversations table
+CREATE TABLE IF NOT EXISTS conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255),
+  context VARCHAR(50) NOT NULL DEFAULT 'general',
+  level VARCHAR(50) NOT NULL DEFAULT 'intermediate',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Messages table
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  role VARCHAR(50) NOT NULL,
+  audio_url TEXT,
+  corrections JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Writing exercises table
+CREATE TABLE IF NOT EXISTS writing_exercises (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255),
+  content TEXT NOT NULL,
+  topic VARCHAR(100),
+  level VARCHAR(50) DEFAULT 'intermediate',
+  focus_areas TEXT[],
+  analysis JSONB,
+  feedback TEXT[],
+  status VARCHAR(50) DEFAULT 'draft',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Pronunciation analyses table
 CREATE TABLE IF NOT EXISTS pronunciation_analyses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,6 +109,9 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_writing_exercises_user_id ON writing_exercises(user_id);
 CREATE INDEX IF NOT EXISTS idx_pronunciation_analyses_user_id ON pronunciation_analyses(user_id);
 CREATE INDEX IF NOT EXISTS idx_progress_tracking_user_id ON progress_tracking(user_id);
 CREATE INDEX IF NOT EXISTS idx_progress_tracking_category ON progress_tracking(category); 

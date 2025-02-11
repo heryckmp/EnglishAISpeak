@@ -3,21 +3,23 @@ import { useState, useEffect } from "react";
 type Theme = "light" | "dark";
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Verificar preferência salva no localStorage
-    if (typeof window !== "undefined") {
-      const savedTheme = window.localStorage.getItem("theme") as Theme;
-      if (savedTheme) return savedTheme;
-
-      // Verificar preferência do sistema
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        return "dark";
-      }
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState<Theme>("light");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    // Verificar preferência salva no localStorage
+    const savedTheme = window.localStorage.getItem("theme") as Theme;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     // Atualizar classe no documento
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
@@ -25,7 +27,7 @@ export function useTheme() {
 
     // Salvar preferência
     window.localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   // Função para alternar tema
   const toggleTheme = () => {
@@ -42,5 +44,6 @@ export function useTheme() {
     toggleTheme,
     setTheme: setThemeMode,
     isDark: theme === "dark",
+    mounted
   };
 } 

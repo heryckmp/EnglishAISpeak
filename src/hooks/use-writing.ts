@@ -1,39 +1,23 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { useApiKey } from "./use-api-key";
 
 interface WritingAnalysis {
-  grammar: {
-    score: number;
-    errors: Array<{
-      type: string;
-      message: string;
-      suggestion: string;
-      severity: "low" | "medium" | "high";
-      context: {
-        text: string;
-        offset: number;
-        length: number;
-      };
-    }>;
-  };
-  vocabulary: {
-    score: number;
-    suggestions: Array<{
-      original: string;
-      suggestions: string[];
-      context: string;
-      reason: string;
-    }>;
-  };
-  coherence: {
-    score: number;
-    feedback: Array<{
-      aspect: string;
-      comment: string;
-      suggestion: string;
-    }>;
-  };
+  grammarScore: number;
+  vocabularyScore: number;
+  coherenceScore: number;
   overallScore: number;
-  generalFeedback: string[];
+  corrections: {
+    original: string;
+    suggestion: string;
+    explanation: string;
+    type: "grammar" | "vocabulary" | "style";
+    severity: "low" | "medium" | "high";
+  }[];
+  suggestions: {
+    category: string;
+    text: string;
+  }[];
+  feedback: string;
 }
 
 interface Exercise {
@@ -57,16 +41,17 @@ export function useWriting({ onAnalysisComplete }: UseWritingProps = {}) {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { apiKey, isKeySet } = useApiKey();
 
-  const analyzeText = useCallback(async (
+  const analyzeText = async (
     content: string,
     title?: string,
     topic?: string,
     level?: string,
     focusAreas?: string[]
   ) => {
-    if (!content.trim()) {
-      setError("Please enter some text to analyze");
+    if (!isKeySet || !apiKey) {
+      setError("Please set your OpenRouter API key first");
       return;
     }
 
@@ -74,7 +59,7 @@ export function useWriting({ onAnalysisComplete }: UseWritingProps = {}) {
     setError(null);
 
     try {
-      const response = await fetch("/api/writing/analyze", {
+      const response = await fetch("/api/write/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,76 +70,58 @@ export function useWriting({ onAnalysisComplete }: UseWritingProps = {}) {
           topic,
           level,
           focusAreas,
+          apiKey,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to analyze text");
+        throw new Error(data.error || "Failed to analyze text");
       }
 
-      const data = await response.json();
-      
-      setExercise({
-        id: data.id,
-        content,
-        title,
-        topic,
-        level,
-        focusAreas,
-        analysis: data.analysis,
-        createdAt: new Date(data.createdAt),
-        updatedAt: new Date(data.updatedAt),
-      });
-
-      if (onAnalysisComplete) {
-        onAnalysisComplete(data.analysis);
+      setExercise(data.exercise);
+      if (onAnalysisComplete && data.exercise.analysis) {
+        onAnalysisComplete(data.exercise.analysis);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError((err as Error).message);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [onAnalysisComplete]);
+  };
 
-  const getFeedback = useCallback(async (content: string) => {
-    if (!exercise?.id) {
-      setError("No active exercise found");
+  const getFeedback = async (content: string) => {
+    if (!isKeySet || !apiKey) {
+      setError("Please set your OpenRouter API key first");
       return;
     }
 
     try {
-      const response = await fetch("/api/writing/feedback", {
+      const response = await fetch("/api/write/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          exerciseId: exercise.id,
           content,
+          exerciseId: exercise?.id,
+          apiKey,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to get feedback");
-      }
-
       const data = await response.json();
-      
-      setExercise(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          feedback: [...(prev.feedback || []), data.feedback],
-          updatedAt: new Date(),
-        };
-      });
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get feedback");
+      }
 
       return data.feedback;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError((err as Error).message);
       return null;
     }
-  }, [exercise?.id]);
+  };
 
   return {
     exercise,

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { BaseAIService, AIServiceConfig } from "./base-ai-service";
 
 export type SpeechProvider = 'browser' | 'vosk' | 'whisper';
 export type SpeechLanguage = 'en-US' | 'en-GB' | 'en-AU';
@@ -12,11 +13,17 @@ interface SpeechRecognitionOptions {
 
 interface SpeechRecognitionResult {
   text: string;
-  isFinal: boolean;
   confidence: number;
+  language?: string;
+  segments?: Array<{
+    text: string;
+    start: number;
+    end: number;
+    confidence: number;
+  }>;
 }
 
-export class SpeechRecognitionService extends EventEmitter {
+export class SpeechRecognitionService extends BaseAIService {
   private recognition: any;
   private provider: SpeechProvider;
   private language: SpeechLanguage;
@@ -79,6 +86,60 @@ export class SpeechRecognitionService extends EventEmitter {
 
   public isSupported(): boolean {
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  async transcribeAudio(audioBlob: Blob, config?: AIServiceConfig): Promise<SpeechRecognitionResult> {
+    try {
+      // Converter o Blob para FormData
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.wav');
+      formData.append('model', 'whisper-1');
+      
+      const baseUrl = await this.ensureConnection();
+      const response = await fetch(`${baseUrl}/transcribe`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Speech recognition failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return {
+        text: result.text,
+        confidence: result.confidence || 1.0,
+        language: result.language,
+        segments: result.segments,
+      };
+    } catch (error) {
+      console.error('Speech recognition error:', error);
+      throw error;
+    }
+  }
+
+  async detectLanguage(audioBlob: Blob): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.wav');
+      formData.append('task', 'detect-language');
+      
+      const baseUrl = await this.ensureConnection();
+      const response = await fetch(`${baseUrl}/detect-language`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Language detection failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.language;
+    } catch (error) {
+      console.error('Language detection error:', error);
+      throw error;
+    }
   }
 }
 

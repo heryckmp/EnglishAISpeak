@@ -1,128 +1,70 @@
-export type TTSProvider = 'browser' | 'coqui' | 'mozilla';
-export type TTSVoice = 'american' | 'british' | 'australian';
-export type TTSLevel = 'beginner' | 'intermediate' | 'advanced';
+import { BaseAIService, AIServiceConfig } from "./base-ai-service";
 
-interface TTSOptions {
-  provider?: TTSProvider;
-  voice?: TTSVoice;
-  rate?: number;
-  pitch?: number;
-  volume?: number;
+export type VoiceGender = "male" | "female";
+export type VoiceAccent = "american" | "british" | "australian";
+
+export interface VoiceConfig {
+  gender: VoiceGender;
+  accent: VoiceAccent;
+  speed: number; // 0.5 to 2.0
+  pitch: number; // 0.5 to 2.0
 }
 
-interface TTSVoiceInfo {
-  name: string;
-  lang: string;
-  accent: TTSVoice;
-}
+export class SpeechSynthesisService extends BaseAIService {
+  private defaultVoiceConfig: VoiceConfig = {
+    gender: "female",
+    accent: "american",
+    speed: 1.0,
+    pitch: 1.0
+  };
 
-export class SpeechSynthesisService {
-  private synthesis: SpeechSynthesis;
-  private voices: SpeechSynthesisVoice[] = [];
-  private provider: TTSProvider;
-  private currentVoice?: SpeechSynthesisVoice;
-  private options: Required<Omit<TTSOptions, 'provider' | 'voice'>>;
-
-  constructor(options: TTSOptions = {}) {
-    this.synthesis = window.speechSynthesis;
-    this.provider = options.provider || 'browser';
-    this.options = {
-      rate: options.rate || 1,
-      pitch: options.pitch || 1,
-      volume: options.volume || 1
-    };
-
-    this.loadVoices();
-    // Alguns navegadores carregam as vozes de forma assíncrona
-    this.synthesis.onvoiceschanged = () => this.loadVoices();
+  constructor() {
+    super();
   }
 
-  private loadVoices() {
-    this.voices = this.synthesis.getVoices();
-  }
+  async synthesizeSpeech(text: string, config?: Partial<VoiceConfig>): Promise<string> {
+    const voiceConfig = { ...this.defaultVoiceConfig, ...config };
+    
+    const prompt = `
+      Convert the following text to natural speech using these parameters:
+      Gender: ${voiceConfig.gender}
+      Accent: ${voiceConfig.accent}
+      Speed: ${voiceConfig.speed}
+      Pitch: ${voiceConfig.pitch}
+      
+      Text to synthesize:
+      "${text}"
+      
+      Please generate speech that sounds natural and expressive, with appropriate:
+      1. Intonation and stress patterns
+      2. Natural pauses and rhythm
+      3. Emotional expression matching the content
+    `;
 
-  public async speak(text: string, options: Partial<TTSOptions> = {}): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Aplicar opções
-        Object.assign(utterance, {
-          ...this.options,
-          ...options,
-          voice: this.currentVoice
-        });
-
-        utterance.onend = () => resolve();
-        utterance.onerror = (event) => reject(event);
-
-        this.synthesis.speak(utterance);
-      } catch (error) {
-        reject(error);
-      }
+    return this.generateResponse(prompt, {
+      temperature: 0.3, // Lower temperature for more consistent voice
     });
   }
 
-  public setVoice(voice: TTSVoice) {
-    // Encontrar voz correspondente ao sotaque desejado
-    const voiceMap: Record<TTSVoice, string[]> = {
-      american: ['en-US'],
-      british: ['en-GB'],
-      australian: ['en-AU']
-    };
+  async generateExpressionVariants(text: string, emotions: string[] = ["neutral"], config?: AIServiceConfig): Promise<string[]> {
+    const prompt = `
+      Generate different expressive variations of the following text:
+      "${text}"
+      
+      For these emotions: ${emotions.join(", ")}
+      
+      Provide variations that modify:
+      1. Intonation patterns
+      2. Stress emphasis
+      3. Speaking rate
+      4. Voice quality
+    `;
 
-    const targetLangs = voiceMap[voice];
-    this.currentVoice = this.voices.find(v => 
-      targetLangs.some(lang => v.lang.startsWith(lang))
-    );
-  }
+    const response = await this.generateResponse(prompt, {
+      ...config,
+      temperature: 0.6, // Higher temperature for more creative variations
+    });
 
-  public adjustForLevel(level: TTSLevel) {
-    switch (level) {
-      case 'beginner':
-        this.options.rate = 0.8;
-        this.options.pitch = 1;
-        break;
-      case 'intermediate':
-        this.options.rate = 1;
-        this.options.pitch = 1;
-        break;
-      case 'advanced':
-        this.options.rate = 1.2;
-        this.options.pitch = 1;
-        break;
-    }
-  }
-
-  public getAvailableVoices(): TTSVoiceInfo[] {
-    return this.voices
-      .filter(voice => voice.lang.startsWith('en'))
-      .map(voice => ({
-        name: voice.name,
-        lang: voice.lang,
-        accent: this.detectAccent(voice.lang)
-      }));
-  }
-
-  private detectAccent(lang: string): TTSVoice {
-    if (lang.startsWith('en-GB')) return 'british';
-    if (lang.startsWith('en-AU')) return 'australian';
-    return 'american'; // default
-  }
-
-  public pause() {
-    this.synthesis.pause();
-  }
-
-  public resume() {
-    this.synthesis.resume();
-  }
-
-  public stop() {
-    this.synthesis.cancel();
-  }
-
-  public isSupported(): boolean {
-    return 'speechSynthesis' in window;
+    return response.split("\n").filter(line => line.trim());
   }
 } 

@@ -1,130 +1,211 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { WritingEditor } from "@/components/writing/writing-editor";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import { ENGLISH_LEVELS, type EnglishLevel } from '@/lib/prompts/english-training';
 
-const topics = [
-  "Daily Life",
-  "Travel",
-  "Technology",
-  "Environment",
-  "Education",
-  "Culture",
-  "Business",
-  "Health",
-  "Sports",
-  "Entertainment",
-];
-
-const levels = [
-  "Beginner (A1)",
-  "Elementary (A2)",
-  "Intermediate (B1)",
-  "Upper Intermediate (B2)",
-  "Advanced (C1)",
-  "Mastery (C2)",
-];
-
-const focusAreas = [
-  "Grammar",
-  "Vocabulary",
-  "Coherence",
-  "Style",
-  "Punctuation",
-  "Sentence Structure",
-];
+interface WritingAnalysis {
+  grammarScore: number;
+  vocabularyScore: number;
+  coherenceScore: number;
+  overallScore: number;
+  corrections: {
+    original: string;
+    suggestion: string;
+    explanation: string;
+  }[];
+  suggestions: {
+    category: string;
+    text: string;
+  }[];
+  feedback: string;
+}
 
 export default function WritingPage() {
-  const [title, setTitle] = useState("");
-  const [topic, setTopic] = useState("");
-  const [level, setLevel] = useState("");
-  const [selectedFocusAreas, setSelectedFocusAreas] = useState<string[]>([]);
+  const [topic, setTopic] = useState('');
+  const [level, setLevel] = useState<EnglishLevel>('intermediate');
+  const [prompt, setPrompt] = useState('');
+  const [text, setText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<WritingAnalysis | null>(null);
 
-  const handleFocusAreaToggle = (area: string) => {
-    setSelectedFocusAreas(prev =>
-      prev.includes(area)
-        ? prev.filter(a => a !== area)
-        : [...prev, area]
-    );
+  const generatePrompt = async () => {
+    if (!topic) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/writing/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, level }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate prompt');
+
+      const data = await response.json();
+      setPrompt(data.prompt);
+      setText('');
+      setAnalysis(null);
+    } catch (error) {
+      console.error('Error generating prompt:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const analyzeText = async () => {
+    if (!text.trim()) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/writing/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, level }),
+      });
+
+      if (!response.ok) throw new Error('Failed to analyze text');
+
+      const data = await response.json();
+      setAnalysis(data);
+    } catch (error) {
+      console.error('Error analyzing text:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Writing Exercise</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Exercise Configuration */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Title</label>
-              <Input
-                placeholder="Enter a title for your writing"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Topic</label>
-              <Select value={topic} onValueChange={setTopic}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a topic" />
-                </SelectTrigger>
-                <SelectContent>
-                  {topics.map(t => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Level</label>
-              <Select value={level} onValueChange={setLevel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {levels.map(l => (
-                    <SelectItem key={l} value={l}>
-                      {l}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Focus Areas</label>
-              <div className="flex flex-wrap gap-2">
-                {focusAreas.map(area => (
-                  <Button
-                    key={area}
-                    variant={selectedFocusAreas.includes(area) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleFocusAreaToggle(area)}
-                  >
-                    {area}
-                  </Button>
+    <div className="container mx-auto max-w-4xl p-4">
+      <h1 className="text-2xl font-bold mb-4">English Writing Practice</h1>
+      
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <Label htmlFor="topic">Writing Topic</Label>
+            <Input
+              id="topic"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Enter a topic (e.g., 'My Dream Vacation', 'Technology in Daily Life')"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div className="w-48">
+            <Label htmlFor="level">English Level</Label>
+            <Select value={level} onValueChange={(value: EnglishLevel) => setLevel(value)}>
+              <SelectTrigger id="level">
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(ENGLISH_LEVELS).map(([key, value]) => (
+                  <SelectItem key={key} value={key}>
+                    {value} ({key})
+                  </SelectItem>
                 ))}
-              </div>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button
+            onClick={generatePrompt}
+            disabled={!topic || isLoading}
+            className="self-end"
+          >
+            Generate Prompt
+          </Button>
+        </div>
+      </div>
+
+      {prompt && (
+        <Card className="mb-4 p-4">
+          <h2 className="font-semibold mb-2">Writing Prompt:</h2>
+          <p className="text-muted-foreground">{prompt}</p>
+        </Card>
+      )}
+
+      <div className="mb-4">
+        <Label htmlFor="text">Your Writing</Label>
+        <Textarea
+          id="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Write your text here..."
+          className="min-h-[200px]"
+          disabled={isLoading}
+        />
+        <Button
+          onClick={analyzeText}
+          disabled={!text.trim() || isLoading}
+          className="mt-2"
+        >
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Analyze Writing'}
+        </Button>
+      </div>
+
+      {analysis && (
+        <Card className="p-4 space-y-4">
+          <div className="grid grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{analysis.grammarScore}</div>
+              <div className="text-sm text-muted-foreground">Grammar</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{analysis.vocabularyScore}</div>
+              <div className="text-sm text-muted-foreground">Vocabulary</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{analysis.coherenceScore}</div>
+              <div className="text-sm text-muted-foreground">Coherence</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{analysis.overallScore}</div>
+              <div className="text-sm text-muted-foreground">Overall</div>
             </div>
           </div>
 
-          {/* Writing Editor */}
-          <WritingEditor
-            title={title}
-            topic={topic}
-            level={level}
-            focusAreas={selectedFocusAreas}
-          />
-        </CardContent>
-      </Card>
+          {analysis.corrections.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-2">Corrections:</h3>
+              <ul className="space-y-2">
+                {analysis.corrections.map((correction, index) => (
+                  <li key={index} className="bg-muted p-2 rounded">
+                    <div className="text-red-500 line-through">{correction.original}</div>
+                    <div className="text-green-500">{correction.suggestion}</div>
+                    <div className="text-sm text-muted-foreground">{correction.explanation}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {analysis.suggestions.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-2">Suggestions for Improvement:</h3>
+              <ul className="space-y-2">
+                {analysis.suggestions.map((suggestion, index) => (
+                  <li key={index} className="bg-muted p-2 rounded">
+                    <span className="font-medium">{suggestion.category}:</span>{" "}
+                    {suggestion.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div>
+            <h3 className="font-semibold mb-2">Feedback:</h3>
+            <p className="text-muted-foreground">{analysis.feedback}</p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 } 

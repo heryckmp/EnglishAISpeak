@@ -1,145 +1,79 @@
-import { ChatService } from "./chat-service";
+import { BaseAIService, AIServiceConfig } from "./base-ai-service";
 
-interface WritingAnalysis {
+export interface WritingAnalysis {
   grammarScore: number;
   vocabularyScore: number;
   coherenceScore: number;
   overallScore: number;
-  corrections: {
-    original: string;
-    suggestion: string;
-    explanation: string;
-    type: "grammar" | "vocabulary" | "style";
-    severity: "low" | "medium" | "high";
-  }[];
-  suggestions: {
-    category: string;
-    text: string;
-  }[];
+  corrections: WritingCorrection[];
+  suggestions: WritingSuggestion[];
   feedback: string;
 }
 
-interface WritingOptions {
-  level?: string;
-  topic?: string;
-  focusAreas?: string[];
+export interface WritingCorrection {
+  original: string;
+  suggestion: string;
+  explanation: string;
+  type: "grammar" | "vocabulary" | "style";
+  severity: "low" | "medium" | "high";
 }
 
-export class WritingService {
-  private chatService: ChatService;
+export interface WritingSuggestion {
+  category: string;
+  text: string;
+}
 
+export class WritingService extends BaseAIService {
   constructor() {
-    this.chatService = new ChatService();
+    super();
   }
 
-  private generateAnalysisPrompt(text: string, options: WritingOptions = {}): string {
-    return `As an English writing instructor, analyze the following text and provide detailed feedback. Focus on grammar, vocabulary, coherence, and style.
+  async analyzeText(text: string, config?: AIServiceConfig): Promise<WritingAnalysis> {
+    const prompt = `
+      Analyze the following English text and provide detailed feedback:
+      
+      Text: "${text}"
+      
+      Provide a JSON response with the following structure:
+      {
+        "grammarScore": number (0-100),
+        "vocabularyScore": number (0-100),
+        "coherenceScore": number (0-100),
+        "overallScore": number (0-100),
+        "corrections": array of corrections with original text, suggestions, and explanations,
+        "suggestions": array of improvement suggestions by category,
+        "feedback": general feedback string
+      }
+    `;
 
-Text to analyze:
-"""
-${text}
-"""
+    const response = await this.generateResponse(prompt, {
+      ...config,
+      temperature: 0.3, // Lower temperature for more consistent analysis
+    });
 
-Level: ${options.level || "intermediate"}
-${options.topic ? `Topic: ${options.topic}` : ""}
-${options.focusAreas ? `Focus areas: ${options.focusAreas.join(", ")}` : ""}
-
-Provide a structured analysis in the following JSON format:
-{
-  "grammarScore": number (0-100),
-  "vocabularyScore": number (0-100),
-  "coherenceScore": number (0-100),
-  "overallScore": number (0-100),
-  "corrections": [
-    {
-      "original": "text with error",
-      "suggestion": "corrected text",
-      "explanation": "why this should be corrected",
-      "type": "grammar|vocabulary|style",
-      "severity": "low|medium|high"
-    }
-  ],
-  "suggestions": [
-    {
-      "category": "category name",
-      "text": "suggestion text"
-    }
-  ],
-  "feedback": "general feedback text"
-}`;
-  }
-
-  async analyzeText(text: string, options: WritingOptions = {}): Promise<WritingAnalysis> {
     try {
-      const prompt = this.generateAnalysisPrompt(text, options);
-      const response = await this.chatService.sendMessage([
-        { role: "system", content: "You are an expert English writing instructor." },
-        { role: "user", content: prompt }
-      ]);
-
-      // Extrair e validar JSON da resposta
-      const analysisMatch = response.match(/\{[\s\S]*\}/);
-      if (!analysisMatch) {
-        throw new Error("Invalid analysis response format");
-      }
-
-      const analysis = JSON.parse(analysisMatch[0]);
-
-      // Validar estrutura da análise
-      if (!this.validateAnalysis(analysis)) {
-        throw new Error("Invalid analysis structure");
-      }
-
-      return analysis;
-    } catch (error) {
-      console.error("Writing analysis error:", error);
-      throw error;
+      return JSON.parse(response) as WritingAnalysis;
+    } catch {
+      throw new Error("Failed to parse writing analysis response");
     }
   }
 
-  private validateAnalysis(analysis: any): analysis is WritingAnalysis {
-    return (
-      typeof analysis.grammarScore === "number" &&
-      typeof analysis.vocabularyScore === "number" &&
-      typeof analysis.coherenceScore === "number" &&
-      typeof analysis.overallScore === "number" &&
-      Array.isArray(analysis.corrections) &&
-      Array.isArray(analysis.suggestions) &&
-      typeof analysis.feedback === "string"
-    );
-  }
+  async improveText(text: string, config?: AIServiceConfig): Promise<string> {
+    const prompt = `
+      Improve the following English text while maintaining its original meaning:
+      
+      "${text}"
+      
+      Provide an improved version that enhances:
+      1. Grammar and structure
+      2. Vocabulary usage
+      3. Style and flow
+      4. Professional tone
+    `;
 
-  async generateWritingPrompt(topic?: string, level: string = "intermediate"): Promise<string> {
-    const prompt = `Generate an engaging writing prompt suitable for ${level} level English learners${
-      topic ? ` about ${topic}` : ""
-    }. The prompt should encourage creative thinking and use of varied vocabulary.`;
-
-    const response = await this.chatService.sendMessage([
-      { role: "system", content: "You are an expert English writing instructor." },
-      { role: "user", content: prompt }
-    ]);
-
-    return response;
-  }
-
-  async provideFeedback(text: string, previousFeedback: string[] = []): Promise<string> {
-    const prompt = `Review this text and provide constructive feedback, considering previous feedback:
-
-Text:
-"""
-${text}
-"""
-
-${previousFeedback.length > 0 ? `Previous feedback:
-${previousFeedback.join("\n")}` : ""}
-
-Provide specific suggestions for improvement while maintaining an encouraging tone.`;
-
-    const response = await this.chatService.sendMessage([
-      { role: "system", content: "You are an expert English writing instructor." },
-      { role: "user", content: prompt }
-    ]);
-
-    return response;
+    return this.generateResponse(prompt, {
+      ...config,
+      temperature: 0.4, // Balanced temperature for creativity and accuracy
+    });
   }
 } 

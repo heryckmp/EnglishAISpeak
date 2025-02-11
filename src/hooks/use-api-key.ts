@@ -13,9 +13,11 @@ export function useApiKey() {
   }, []);
 
   const setKey = (key: string) => {
-    localStorage.setItem("openrouter_api_key", key);
-    setApiKey(key);
-    setIsKeySet(true);
+    if (key && key.trim()) {
+      localStorage.setItem("openrouter_api_key", key.trim());
+      setApiKey(key.trim());
+      setIsKeySet(true);
+    }
   };
 
   const removeKey = () => {

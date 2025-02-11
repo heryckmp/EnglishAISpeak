@@ -25,13 +25,11 @@ interface OpenRouterOptions {
 export class OpenRouterClient {
   private apiKey: string | (() => string);
   private baseUrl: string = "https://openrouter.ai/api/v1";
-  private defaultModel: string = "anthropic/claude-3-opus";
+  private defaultModel: string;
 
-  constructor(apiKey: string | (() => string), defaultModel?: string) {
+  constructor(apiKey: string | (() => string), defaultModel: string = "anthropic/claude-3-opus") {
     this.apiKey = apiKey;
-    if (defaultModel) {
-      this.defaultModel = defaultModel;
-    }
+    this.defaultModel = defaultModel;
   }
 
   private getApiKey(): string {
