@@ -22,7 +22,8 @@ interface Config {
     defaultModel: string;
   };
   llm: {
-    provider: "openrouter" | "local" | "openai";
+    provider: "lmstudio" | "local" | "openai" | "openrouter";
+    baseUrl: string;
     localModels: {
       llama2: {
         enabled: boolean;
@@ -81,7 +82,8 @@ const config: Config = {
     defaultModel: "anthropic/claude-3-opus",
   },
   llm: {
-    provider: "openrouter" as const,
+    provider: (process.env.LLM_PROVIDER as Config["llm"]["provider"]) || "lmstudio",
+    baseUrl: process.env.LM_STUDIO_BASE_URL || "http://localhost:1234/v1",
     localModels: {
       llama2: {
         enabled: process.env.ENABLE_LLAMA2 === "true",
@@ -124,6 +126,8 @@ if (config.llm.provider === "openrouter") {
   requiredEnvVars.push('OPENROUTER_API_KEY');
 } else if (config.llm.provider === "openai") {
   requiredEnvVars.push('OPENAI_API_KEY');
+} else if (config.llm.provider === "lmstudio") {
+  requiredEnvVars.push('LM_STUDIO_BASE_URL');
 }
 
 for (const envVar of requiredEnvVars) {
