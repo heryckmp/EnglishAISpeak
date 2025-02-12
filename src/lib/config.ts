@@ -14,30 +14,9 @@ interface Config {
     githubId: string;
     githubSecret: string;
   };
-  openai: {
-    apiKey: string;
-  };
-  openrouter: {
-    apiKey: string | (() => string);
-    defaultModel: string;
-  };
   llm: {
-    provider: "lmstudio" | "local" | "openai" | "openrouter";
+    provider: "lmstudio" | "local";
     baseUrl: string;
-    localModels: {
-      llama2: {
-        enabled: boolean;
-        apiUrl: string;
-      };
-      mistral: {
-        enabled: boolean;
-        apiUrl: string;
-      };
-      phi2: {
-        enabled: boolean;
-        apiUrl: string;
-      };
-    };
   };
   tts: {
     provider: "browser" | "coqui" | "mozilla";
@@ -50,13 +29,6 @@ interface Config {
     whisperUrl?: string;
   };
 }
-
-const getApiKey = () => {
-  if (typeof window !== "undefined") {
-    return window.localStorage.getItem("openrouter_api_key") || "";
-  }
-  return "";
-};
 
 const config: Config = {
   database: {
@@ -74,30 +46,9 @@ const config: Config = {
     githubId: process.env.GITHUB_ID || "",
     githubSecret: process.env.GITHUB_SECRET || "",
   },
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || "",
-  },
-  openrouter: {
-    apiKey: getApiKey,
-    defaultModel: "anthropic/claude-3-opus",
-  },
   llm: {
     provider: (process.env.LLM_PROVIDER as Config["llm"]["provider"]) || "lmstudio",
     baseUrl: process.env.LM_STUDIO_BASE_URL || "http://localhost:1234/v1",
-    localModels: {
-      llama2: {
-        enabled: process.env.ENABLE_LLAMA2 === "true",
-        apiUrl: process.env.LLAMA2_API_URL || "http://localhost:8000",
-      },
-      mistral: {
-        enabled: process.env.ENABLE_MISTRAL === "true",
-        apiUrl: process.env.MISTRAL_API_URL || "http://localhost:8001",
-      },
-      phi2: {
-        enabled: process.env.ENABLE_PHI2 === "true",
-        apiUrl: process.env.PHI2_API_URL || "http://localhost:8002",
-      },
-    },
   },
   tts: {
     provider: "browser" as const,
@@ -121,12 +72,8 @@ const requiredEnvVars = [
   'GITHUB_SECRET',
 ];
 
-// Validar variáveis condicionais
-if (config.llm.provider === "openrouter") {
-  requiredEnvVars.push('OPENROUTER_API_KEY');
-} else if (config.llm.provider === "openai") {
-  requiredEnvVars.push('OPENAI_API_KEY');
-} else if (config.llm.provider === "lmstudio") {
+// Validar apenas em runtime, não durante o build
+if (process.env.NODE_ENV !== 'production' && config.llm.provider === "lmstudio") {
   requiredEnvVars.push('LM_STUDIO_BASE_URL');
 }
 

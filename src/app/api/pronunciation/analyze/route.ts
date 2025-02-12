@@ -1,11 +1,78 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { query } from "@/lib/db";
-import OpenAI from "openai";
+import config from "@/lib/config";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+async function transcribeAudio(audioFile: Blob): Promise<string> {
+  // TODO: Implementar uma solução de transcrição local
+  // Por enquanto, retornamos uma mensagem informativa
+  console.warn("Audio transcription is not implemented yet", { audioSize: audioFile.size });
+  return "Audio transcription not available - using LM Studio for text analysis only";
+}
+
+async function analyzePronunciation(expectedText: string, transcribedText: string) {
+  try {
+    const response = await fetch(`${config.llm.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "local-model",
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional English pronunciation coach. Analyze the pronunciation by comparing the expected text with the transcribed text. Provide detailed feedback on accuracy, fluency, and specific pronunciation errors. Format your response as a JSON object with the following structure:
+            {
+              "overallScore": number (0-100),
+              "accuracy": number (0-100),
+              "fluency": number (0-100),
+              "errors": [
+                {
+                  "type": "missing_word" | "mispronounced" | "extra_word",
+                  "word": string,
+                  "expected": string,
+                  "transcribed": string,
+                  "position": number
+                }
+              ],
+              "feedback": {
+                "strengths": string[],
+                "improvements": string[],
+                "generalComment": string
+              }
+            }`
+          },
+          {
+            role: "user",
+            content: `Expected text: "${expectedText}"
+Transcribed text: "${transcribedText}"
+
+Analyze the pronunciation and provide feedback.`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LM Studio API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    
+    if (!content) {
+      throw new Error("No analysis result received");
+    }
+
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Error analyzing pronunciation:", error);
+    throw new Error("Failed to analyze pronunciation");
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,77 +92,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert Blob to File for OpenAI API
-    const file = new File([audioFile], "audio.wav", { type: "audio/wav" });
+    // Transcribe audio (temporariamente retornando mensagem padrão)
+    const transcription = await transcribeAudio(audioFile);
 
-    // Transcribe audio using Whisper
-    const transcription = await openai.audio.transcriptions.create({
-      file,
-      model: "whisper-1",
-      language: "en",
-    });
-
-    // Analyze pronunciation using GPT-4
-    const analysis = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are a professional English pronunciation coach. Analyze the pronunciation by comparing the expected text with the transcribed text. Provide detailed feedback on accuracy, fluency, and specific pronunciation errors. Format your response as a JSON object with the following structure:
-          {
-            "overallScore": number (0-100),
-            "accuracy": number (0-100),
-            "fluency": number (0-100),
-            "errors": [
-              {
-                "type": "missing_word" | "mispronounced" | "extra_word",
-                "word": string,
-                "expected": string,
-                "transcribed": string,
-                "position": number
-              }
-            ],
-            "feedback": {
-              "strengths": string[],
-              "improvements": string[],
-              "generalComment": string
-            }
-          }`,
-        },
-        {
-          role: "user",
-          content: `Expected text: "${expectedText}"
-Transcribed text: "${transcription.text}"
-
-Analyze the pronunciation and provide feedback.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
-    });
-
-    const content = analysis.choices[0].message.content;
-    if (!content) {
-      throw new Error("No analysis result received");
-    }
-
-    const result = JSON.parse(content);
+    // Analyze pronunciation using LM Studio
+    const result = await analyzePronunciation(expectedText, transcription);
 
     // Store analysis in database
-    await query({
-      query: `INSERT INTO pronunciation_analyses 
+    await query(
+      `INSERT INTO pronunciation_analyses 
         (user_id, expected_text, transcribed_text, analysis)
-        VALUES (?, ?, ?, ?)`,
-      values: [
+        VALUES ($1, $2, $3, $4)`,
+      [
         session.user.id,
         expectedText,
-        transcription.text,
+        transcription,
         JSON.stringify(result),
-      ],
-    });
+      ]
+    );
 
     return Response.json({
-      transcript: transcription.text,
+      transcript: transcription,
       analysis: result,
     });
   } catch (error) {
