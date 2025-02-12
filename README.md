@@ -1,3 +1,5 @@
+![English AI Trainer](https://github.com/heryckmp/EnglishAISpeak/raw/main/docs/images/home-dark.png)
+
 # English AI Trainer
 
 Um aplicativo web moderno para treinamento de inglês usando Inteligência Artificial local.
