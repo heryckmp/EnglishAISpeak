@@ -58,7 +58,7 @@ export default function HomePage() {
                 <li>TypeScript</li>
                 <li>TailwindCSS</li>
                 <li>FastAPI</li>
-                <li>Microsoft Phi-2</li>
+                <li>PostgreSQL</li>
               </ul>
             </div>
           </div>
