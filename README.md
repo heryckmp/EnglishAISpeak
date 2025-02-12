@@ -62,7 +62,7 @@ Um aplicativo web moderno para treinamento de inglês usando Inteligência Artif
 ### IA Local
 - LM Studio
   - Suporte a múltiplos modelos:
-    - Microsoft Phi-2
+    - DeepSeek R1
     - Mistral
     - Llama 2
   - Configuração flexível
