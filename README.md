@@ -1,4 +1,4 @@
-![English AI Trainer](https://github.com/heryckmp/EnglishAISpeak/raw/main/docs/images/home-dark.png)
+![English AI Trainer](docs/images/home-dark.png)
 
 # English AI Trainer
 
